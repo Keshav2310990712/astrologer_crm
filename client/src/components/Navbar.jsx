@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, User as UserIcon, Sparkles, Users } from 'lucide-react';
+import { LogOut, LayoutDashboard, User as UserIcon, Sparkles, Users, Calendar } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -53,6 +53,14 @@ const Navbar = () => {
                 >
                   <Users className="h-4 w-4 text-cosmic-400" />
                   <span className="hidden sm:inline">Clients</span>
+                </Link>
+
+                <Link
+                  to="/consultations"
+                  className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-200 hover:text-white hover:bg-cosmic-900/40 border border-transparent hover:border-cosmic-800/40 transition-all duration-200"
+                >
+                  <Calendar className="h-4 w-4 text-cosmic-400" />
+                  <span className="hidden sm:inline">Consultations</span>
                 </Link>
 
                 <button

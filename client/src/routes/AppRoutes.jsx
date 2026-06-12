@@ -4,6 +4,7 @@ import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import Dashboard from '../pages/Dashboard';
 import Clients from '../pages/Clients';
+import Consultations from '../pages/Consultations';
 import NotFound from '../pages/NotFound';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
@@ -43,6 +44,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Clients />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/consultations"
+        element={
+          <ProtectedRoute>
+            <Consultations />
           </ProtectedRoute>
         }
       />
