@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { X, Sparkles, User, Calendar, Clock, DollarSign, BookOpen, AlertCircle } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import Input from './ui/Input';
+import Button from './ui/Button';
+import { X, Sparkles, User, Calendar, Clock, DollarSign, BookOpen } from 'lucide-react';
 
 const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) => {
+  const { showToast } = useToast();
+  
   const [formData, setFormData] = useState({
     client: '',
     date: '',
@@ -13,7 +18,7 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
 
   const [clients, setClients] = useState([]);
   const [loadingClients, setLoadingClients] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   // Fetch clients to populate the dropdown
@@ -40,9 +45,8 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
   // Load consultation data if editing
   useEffect(() => {
     if (consultationData) {
-      // Format Date to datetime-local format: YYYY-MM-DDTHH:MM
       const d = new Date(consultationData.date);
-      const tzOffset = d.getTimezoneOffset() * 60000; // Offset in milliseconds
+      const tzOffset = d.getTimezoneOffset() * 60000;
       const localISOTime = (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
 
       setFormData({
@@ -61,7 +65,7 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
         notes: '',
       });
     }
-    setError('');
+    setErrors({});
   }, [consultationData, isOpen]);
 
   if (!isOpen) return null;
@@ -73,13 +77,33 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
     });
   };
 
+  const validate = () => {
+    const tempErrors = {};
+    if (!formData.client) tempErrors.client = 'Client selection is required';
+    if (!formData.date) tempErrors.date = 'Consultation date and time is required';
+    
+    if (!formData.duration) {
+      tempErrors.duration = 'Duration is required';
+    } else if (Number(formData.duration) <= 0) {
+      tempErrors.duration = 'Duration must be positive';
+    }
+    
+    if (formData.fee === '') {
+      tempErrors.fee = 'Fee amount is required';
+    } else if (Number(formData.fee) < 0) {
+      tempErrors.fee = 'Fee cannot be negative';
+    }
+
+    setErrors(tempErrors);
+    return Object.keys(tempErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setErrors({});
 
-    const { client, date, duration, fee } = formData;
-    if (!client || !date || !duration || fee === '') {
-      setError('Please fill in all required fields');
+    if (!validate()) {
+      showToast('Form verification failed. Please check validation alerts.', 'warning');
       return;
     }
 
@@ -87,10 +111,10 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
     try {
       let response;
       const submitData = {
-        client,
-        date: new Date(date).toISOString(),
-        duration: Number(duration),
-        fee: Number(fee),
+        client: formData.client,
+        date: new Date(formData.date).toISOString(),
+        duration: Number(formData.duration),
+        fee: Number(formData.fee),
         notes: formData.notes,
       };
 
@@ -101,12 +125,16 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
       }
 
       if (response.data.success) {
+        showToast(
+          consultationData ? 'Consultation rescheduled successfully.' : 'Consultation booked successfully!',
+          'success'
+        );
         onSave();
         onClose();
       }
     } catch (err) {
       console.error('Save consultation error:', err);
-      setError(err.response?.data?.message || 'Failed to schedule consultation. Please try again.');
+      showToast(err.response?.data?.message || 'Failed to schedule consultation.', 'error');
     } finally {
       setLoading(false);
     }
@@ -118,7 +146,7 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
       <div className="absolute inset-0 bg-cosmic-950/80 backdrop-blur-sm" onClick={onClose}></div>
 
       {/* Modal */}
-      <div className="glass-panel-glow border-cosmic-800/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative z-10 animate-slide-up max-h-[90vh] flex flex-col">
+      <div className="glass-panel-glow border-cosmic-800/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative z-10 animate-slide-up max-h-[90vh] flex flex-col font-sans">
         {/* Header */}
         <div className="px-6 py-4 border-b border-cosmic-800/20 flex items-center justify-between shrink-0">
           <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
@@ -131,18 +159,11 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
         </div>
 
         {/* Form body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-5">
-          {error && (
-            <div className="bg-rose-950/20 border border-rose-800/40 p-4 rounded-xl flex items-start space-x-3 text-rose-200 animate-fade-in text-sm shrink-0">
-              <AlertCircle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-5" noValidate>
           <div className="space-y-4">
             {/* Client selection */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-cosmic-300/70 mb-2">
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-cosmic-300/70">
                 Select Client *
               </label>
               <div className="relative">
@@ -155,7 +176,7 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
                   disabled={loadingClients || !!consultationData}
                   value={formData.client}
                   onChange={handleChange}
-                  className="glass-input block w-full pl-10 pr-4 py-2.5 rounded-xl text-sm appearance-none bg-cosmic-950 disabled:opacity-50"
+                  className={`glass-input block w-full pl-10 pr-4 py-2.5 rounded-xl text-sm appearance-none bg-cosmic-950 disabled:opacity-50 ${errors.client ? 'border-rose-500/50' : ''}`}
                 >
                   <option value="" disabled className="bg-cosmic-950 text-slate-500">
                     {loadingClients ? 'Loading clients...' : 'Choose Client'}
@@ -167,6 +188,11 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
                   ))}
                 </select>
               </div>
+              {errors.client && (
+                <p className="text-[10px] text-rose-400 font-semibold tracking-wide flex items-center gap-1">
+                  <span>⚠️</span> {errors.client}
+                </p>
+              )}
               {(!loadingClients && clients.length === 0) && (
                 <p className="text-[10px] text-amber-400 mt-1">
                   No clients available. Please register a client in your directory first.
@@ -175,75 +201,52 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
             </div>
 
             {/* Date & Time */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-cosmic-300/70 mb-2">
-                Consultation Date & Time *
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-cosmic-400">
-                  <Calendar className="h-4 w-4" />
-                </div>
-                <input
-                  name="date"
-                  type="datetime-local"
-                  required
-                  value={formData.date}
-                  onChange={handleChange}
-                  className="glass-input block w-full pl-10 pr-4 py-2.5 rounded-xl text-sm [color-scheme:dark]"
-                />
-              </div>
-            </div>
+            <Input
+              label="Consultation Date & Time *"
+              name="date"
+              type="datetime-local"
+              value={formData.date}
+              onChange={handleChange}
+              icon={Calendar}
+              error={errors.date}
+              required
+              className="[color-scheme:dark]"
+            />
 
             {/* Duration & Fee Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Duration */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-cosmic-300/70 mb-2">
-                  Duration (Minutes) *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-cosmic-400">
-                    <Clock className="h-4 w-4" />
-                  </div>
-                  <input
-                    name="duration"
-                    type="number"
-                    min="1"
-                    required
-                    value={formData.duration}
-                    onChange={handleChange}
-                    className="glass-input block w-full pl-10 pr-4 py-2.5 rounded-xl text-sm placeholder-cosmic-400/30"
-                    placeholder="30"
-                  />
-                </div>
-              </div>
+              <Input
+                label="Duration (Minutes) *"
+                name="duration"
+                type="number"
+                min="1"
+                value={formData.duration}
+                onChange={handleChange}
+                icon={Clock}
+                error={errors.duration}
+                placeholder="30"
+                required
+              />
 
               {/* Fee */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-cosmic-300/70 mb-2">
-                  Consultation Fee (USD) *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-cosmic-400">
-                    <DollarSign className="h-4 w-4" />
-                  </div>
-                  <input
-                    name="fee"
-                    type="number"
-                    min="0"
-                    required
-                    value={formData.fee}
-                    onChange={handleChange}
-                    className="glass-input block w-full pl-10 pr-4 py-2.5 rounded-xl text-sm placeholder-cosmic-400/30"
-                    placeholder="100"
-                  />
-                </div>
-              </div>
+              <Input
+                label="Consultation Fee (USD) *"
+                name="fee"
+                type="number"
+                min="0"
+                value={formData.fee}
+                onChange={handleChange}
+                icon={DollarSign}
+                error={errors.fee}
+                placeholder="100"
+                required
+              />
             </div>
 
             {/* Notes */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-cosmic-300/70 mb-2">
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-cosmic-300/70">
                 Session Notes / Cosmic Intentions
               </label>
               <div className="relative">
@@ -264,24 +267,21 @@ const ConsultationFormModal = ({ isOpen, onClose, consultationData, onSave }) =>
 
           {/* Footer actions */}
           <div className="pt-4 border-t border-cosmic-800/10 flex justify-end space-x-3 shrink-0">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={onClose}
-              className="px-4.5 py-2.5 rounded-xl border border-cosmic-800/40 text-xs font-semibold text-slate-300 hover:text-white hover:bg-cosmic-900/30 transition-all"
+              size="sm"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={loading || (clients.length === 0 && !consultationData)}
-              className="px-5 py-2.5 rounded-xl text-xs font-semibold text-cosmic-950 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-300 hover:to-gold-400 transition-all disabled:opacity-50 flex items-center justify-center min-w-[90px]"
+              loading={loading}
+              disabled={clients.length === 0 && !consultationData}
+              size="sm"
             >
-              {loading ? (
-                <div className="h-4 w-4 border-2 border-cosmic-950 border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                consultationData ? 'Reschedule' : 'Book Session'
-              )}
-            </button>
+              {consultationData ? 'Reschedule' : 'Book Session'}
+            </Button>
           </div>
         </form>
       </div>

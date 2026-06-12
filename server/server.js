@@ -7,6 +7,8 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const consultationRoutes = require('./routes/consultationRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const { globalErrorHandler } = require('./middleware/errorMiddleware');
+const AppError = require('./config/errorHandler');
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +38,14 @@ app.get('/api/status', (req, res) => {
     timestamp: new Date()
   });
 });
+
+// Fallback unmatched routes handler
+app.all('*', (req, res, next) => {
+  next(new AppError(`Cannot find ${req.originalUrl} on this server!`, 404));
+});
+
+// Global Error Handler Middleware
+app.use(globalErrorHandler);
 
 // Port configuration
 const PORT = process.env.PORT || 5000;

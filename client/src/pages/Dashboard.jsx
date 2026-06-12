@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
+import Card from '../components/ui/Card';
+import Spinner from '../components/ui/Spinner';
 import { 
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { 
-  Sparkles, Users, Calendar, Award, Star, Compass, Clock, Plus, CheckCircle2, ChevronRight, TrendingUp, DollarSign, RefreshCw, AlertCircle
+  Sparkles, Users, Calendar, Award, Star, Compass, Clock, Plus, ChevronRight, TrendingUp, DollarSign, RefreshCw, AlertCircle
 } from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   
   const [stats, setStats] = useState(null);
   const [analytics, setAnalytics] = useState([]);
@@ -34,6 +38,7 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError('Failed to align cosmic data. Please try again.');
+      showToast('Could not fetch latest metrics from server.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -47,6 +52,7 @@ const Dashboard = () => {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchData();
+    showToast('Dashboard metrics synchronized.', 'info');
   };
 
   // Format currency helper
@@ -62,7 +68,7 @@ const Dashboard = () => {
   const CustomTooltip = ({ active, payload, label, unit }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="glass-panel-glow border-cosmic-500/30 rounded-xl p-3 text-xs bg-cosmic-950/90 text-slate-100">
+        <div className="glass-panel-glow border-cosmic-500/30 rounded-xl p-3 text-xs bg-cosmic-950/90 text-slate-100 font-sans">
           <p className="font-semibold uppercase tracking-wider text-gold-300 mb-1">{label}</p>
           <p className="flex items-center gap-1.5 font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-cosmic-400"></span>
@@ -81,11 +87,7 @@ const Dashboard = () => {
         <div className="absolute w-[250px] h-[250px] rounded-full bg-gold-500/10 blur-[80px] bottom-1/4 right-1/4 animate-pulse-slow"></div>
         
         <div className="flex flex-col items-center z-10">
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-2 border-t-cosmic-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
-            <div className="absolute inset-2 rounded-full border border-t-transparent border-r-gold-300 border-b-transparent border-l-transparent animate-spin-slow"></div>
-            <div className="absolute inset-0 flex items-center justify-center text-xl">✨</div>
-          </div>
+          <Spinner size="lg" />
           <p className="mt-4 text-cosmic-300/80 font-medium tracking-widest text-xs uppercase animate-pulse">
             Consulting the Stars...
           </p>
@@ -138,7 +140,7 @@ const Dashboard = () => {
       <div className="absolute w-[500px] h-[500px] rounded-full bg-cosmic-500/5 blur-[120px] top-0 right-0 animate-pulse-slow"></div>
       <div className="absolute w-[400px] h-[400px] rounded-full bg-gold-500/5 blur-[100px] bottom-0 left-0 animate-pulse-slow"></div>
 
-      <div className="max-w-7xl mx-auto space-y-8 relative z-10 animate-fade-in">
+      <div className="max-w-7xl mx-auto space-y-8 relative z-10 animate-fade-in font-sans">
         {/* Welcome Section */}
         <div className="md:flex md:items-center md:justify-between border-b border-cosmic-900/50 pb-6">
           <div className="flex-1 min-w-0">
@@ -251,8 +253,8 @@ const Dashboard = () => {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-xs text-cosmic-300/30 uppercase tracking-widest">
-                  Seeding analytics charts...
+                <div className="h-full flex items-center justify-center">
+                  <Spinner size="sm" />
                 </div>
               )}
             </div>
@@ -311,8 +313,8 @@ const Dashboard = () => {
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-xs text-cosmic-300/30 uppercase tracking-widest">
-                  Seeding analytics charts...
+                <div className="h-full flex items-center justify-center">
+                  <Spinner size="sm" />
                 </div>
               )}
             </div>
@@ -322,7 +324,7 @@ const Dashboard = () => {
         {/* Detailed Grid (Profile Summary + Consultations list) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Overview */}
-          <div className="glass-panel rounded-2xl p-6 border border-cosmic-800/40 shadow-xl lg:col-span-1">
+          <Card className="lg:col-span-1">
             <h3 className="text-base font-bold text-slate-100 mb-4 tracking-wide">Cosmic Profile</h3>
             <div className="flex items-center space-x-4">
               <div className="h-14 w-14 rounded-xl bg-gradient-to-tr from-cosmic-600 to-gold-500 flex items-center justify-center text-xl font-bold border border-cosmic-400/20 shadow-lg">
@@ -349,10 +351,10 @@ const Dashboard = () => {
                 <span className="font-semibold text-gold-300">{user?.experience} Years</span>
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Today's appointments details list */}
-          <div className="glass-panel rounded-2xl p-6 border border-cosmic-800/40 shadow-xl lg:col-span-2">
+          <Card className="lg:col-span-2">
             <h3 className="text-base font-bold text-slate-100 mb-6 flex items-center justify-between">
               <span>Today's Consultations Schedule</span>
               <span className="text-[10px] font-bold text-gold-400 bg-gold-950/20 border border-gold-900/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
@@ -390,7 +392,7 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>

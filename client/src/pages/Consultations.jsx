@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 import ConsultationFormModal from '../components/ConsultationFormModal';
 import NotesViewModal from '../components/NotesViewModal';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Spinner from '../components/ui/Spinner';
 import { 
-  Plus, Calendar, Clock, DollarSign, BookOpen, AlertCircle, RefreshCw, Edit2, Trash2, ChevronRight, CheckCircle2, XCircle, Sparkles 
+  Plus, Calendar, Clock, DollarSign, BookOpen, RefreshCw, Edit2, Trash2, ChevronRight, Sparkles 
 } from 'lucide-react';
 
 const Consultations = () => {
+  const { showToast } = useToast();
+  
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
 
   // Modals state
@@ -19,7 +24,6 @@ const Consultations = () => {
 
   const fetchConsultations = async () => {
     setLoading(true);
-    setError('');
     try {
       const response = await api.get('/consultations');
       if (response.data.success) {
@@ -27,7 +31,7 @@ const Consultations = () => {
       }
     } catch (err) {
       console.error('Fetch consultations error:', err);
-      setError('Failed to align consultation schedule. Please try again.');
+      showToast('Failed to align consultation schedule. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -39,6 +43,7 @@ const Consultations = () => {
 
   const handleRefresh = () => {
     fetchConsultations();
+    showToast('Consultation schedule updated.', 'info');
   };
 
   const handleBookClick = () => {
@@ -61,11 +66,12 @@ const Consultations = () => {
     try {
       const response = await api.delete(`/consultations/${id}`);
       if (response.data.success) {
+        showToast('Consultation successfully cancelled and deleted.', 'success');
         fetchConsultations();
       }
     } catch (err) {
       console.error('Delete consultation error:', err);
-      alert('Failed to delete consultation');
+      showToast('Failed to cancel consultation', 'error');
     }
   };
 
@@ -74,12 +80,12 @@ const Consultations = () => {
     try {
       const response = await api.put(`/consultations/${id}`, { status: newStatus });
       if (response.data.success) {
-        // Update item local state to avoid full reload flicker
+        showToast(`Session status aligned to: ${newStatus}`, 'success');
         setConsultations(consultations.map(c => c._id === id ? response.data.data : c));
       }
     } catch (err) {
       console.error('Change status error:', err);
-      alert('Failed to update consultation status');
+      showToast('Failed to update consultation status', 'error');
     } finally {
       setUpdatingId(null);
     }
@@ -120,10 +126,10 @@ const Consultations = () => {
   return (
     <div className="flex-1 py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden cosmic-bg">
       {/* Background glowing effects */}
-      <div className="absolute w-[500px] h-[500px] rounded-full bg-cosmic-500/5 blur-[120px] top-0 right-0 animate-pulse-slow"></div>
-      <div className="absolute w-[400px] h-[400px] rounded-full bg-gold-500/5 blur-[100px] bottom-0 left-0 animate-pulse-slow"></div>
+      <div className="absolute w-[500px] h-[500px] rounded-full bg-cosmic-500/5 blur-[120px] top-0 right-0 pointer-events-none"></div>
+      <div className="absolute w-[400px] h-[400px] rounded-full bg-gold-500/5 blur-[100px] bottom-0 left-0 pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto space-y-8 relative z-10 animate-fade-in">
+      <div className="max-w-7xl mx-auto space-y-8 relative z-10 animate-fade-in font-sans">
         {/* Header Section */}
         <div className="sm:flex sm:items-center sm:justify-between border-b border-cosmic-900/50 pb-6">
           <div className="flex-1 min-w-0">
@@ -135,39 +141,28 @@ const Consultations = () => {
             </p>
           </div>
           <div className="mt-4 flex sm:mt-0 sm:ml-4 gap-2">
-            <button 
+            <Button 
+              variant="secondary"
               onClick={handleRefresh}
-              className="inline-flex items-center px-4 py-2.5 rounded-xl border border-cosmic-800/40 text-sm font-semibold text-slate-200 bg-cosmic-950/40 hover:bg-cosmic-900/40 transition-all duration-200"
+              className="px-3"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button 
+            </Button>
+            <Button 
               onClick={handleBookClick}
-              className="inline-flex items-center px-4.5 py-2.5 rounded-xl border border-transparent text-sm font-semibold text-cosmic-950 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-300 hover:to-gold-400 transition-all duration-200 shadow-lg shadow-gold-500/15"
+              className="gap-1.5"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Book Consultation
-            </button>
+              <Plus className="h-4 w-4" /> Book Consultation
+            </Button>
           </div>
         </div>
 
-        {/* Error Alert */}
-        {error && (
-          <div className="bg-rose-950/20 border border-rose-800/40 p-4 rounded-xl flex items-start space-x-3 text-rose-200 animate-fade-in text-sm">
-            <AlertCircle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-
         {/* Calendar / Consultation List Table */}
-        <div className="glass-panel rounded-2xl border border-cosmic-800/30 overflow-hidden shadow-2xl">
+        <Card className="p-0 overflow-hidden border border-cosmic-800/30 shadow-2xl">
           {loading ? (
-            <div className="py-24 flex flex-col items-center justify-center">
-              <div className="relative w-12 h-12 mb-3">
-                <div className="absolute inset-0 rounded-full border-2 border-t-cosmic-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center text-lg">✨</div>
-              </div>
-              <p className="text-xs text-cosmic-400 uppercase tracking-widest animate-pulse">Checking alignments...</p>
+            <div className="py-24">
+              <Spinner size="lg" />
+              <p className="text-xs text-cosmic-400 uppercase tracking-widest text-center mt-4 animate-pulse">Checking alignments...</p>
             </div>
           ) : consultations.length > 0 ? (
             <div className="overflow-x-auto">
@@ -275,23 +270,24 @@ const Consultations = () => {
               </table>
             </div>
           ) : (
-            <div className="py-20 flex flex-col items-center justify-center max-w-sm mx-auto text-center">
-              <div className="p-4 rounded-full bg-cosmic-950/60 border border-cosmic-800/40 text-cosmic-400 mb-4 animate-float">
+            <div className="py-20 flex flex-col items-center justify-center max-w-sm mx-auto text-center px-4">
+              <div className="p-4 rounded-2xl bg-cosmic-950/60 border border-cosmic-800/40 text-cosmic-400 mb-4 animate-float">
                 <Calendar className="h-10 w-10 text-gold-400" />
               </div>
               <h3 className="text-base font-bold text-slate-100">Empty Calendar Schedule</h3>
               <p className="text-xs text-cosmic-300/50 mt-1 leading-relaxed">
                 You do not have any consultations logged under your schedule yet. Align a new booking session to begin.
               </p>
-              <button
+              <Button
                 onClick={handleBookClick}
-                className="mt-5 inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-semibold text-cosmic-950 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-300 hover:to-gold-400 transition-all"
+                className="mt-5"
+                size="sm"
               >
                 <Plus className="h-3.5 w-3.5 mr-1.5" /> Book First Session
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Book / Edit Modal */}

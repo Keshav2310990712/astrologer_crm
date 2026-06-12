@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
+import Spinner from '../components/ui/Spinner';
 import { 
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
@@ -8,6 +10,7 @@ import {
 } from 'lucide-react';
 
 const Analytics = () => {
+  const { showToast } = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -23,6 +26,7 @@ const Analytics = () => {
     } catch (err) {
       console.error('Fetch analytics error:', err);
       setError('Failed to align analytics data. Please try again.');
+      showToast('Failed to align analytics data. Please try again.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -36,6 +40,7 @@ const Analytics = () => {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchAnalytics();
+    showToast('Analytics dashboard updated.', 'info');
   };
 
   // Formatting helpers
@@ -112,11 +117,7 @@ const Analytics = () => {
         <div className="absolute w-[250px] h-[250px] rounded-full bg-gold-500/10 blur-[80px] bottom-1/4 right-1/4 animate-pulse-slow"></div>
         
         <div className="flex flex-col items-center z-10">
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-2 border-t-cosmic-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
-            <div className="absolute inset-2 rounded-full border border-t-transparent border-r-gold-300 border-b-transparent border-l-transparent animate-spin-slow"></div>
-            <div className="absolute inset-0 flex items-center justify-center text-xl">✨</div>
-          </div>
+          <Spinner size="lg" />
           <p className="mt-4 text-cosmic-300/80 font-medium tracking-widest text-xs uppercase animate-pulse">
             Analyzing alignments...
           </p>

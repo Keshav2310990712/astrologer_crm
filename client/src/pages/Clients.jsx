@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 import ClientFormModal from '../components/ClientFormModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Spinner from '../components/ui/Spinner';
 import { 
-  Plus, Search, Edit2, Trash2, Calendar, Clock, MapPin, UserPlus, ChevronLeft, ChevronRight, AlertCircle, RefreshCw, Phone, Mail, Sparkles 
+  Plus, Search, Edit2, Trash2, Calendar, Clock, MapPin, UserPlus, ChevronLeft, ChevronRight, RefreshCw, Phone, Mail, Sparkles 
 } from 'lucide-react';
 
 const Clients = () => {
+  const { showToast } = useToast();
+  
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   
   // Search & Pagination State
   const [search, setSearch] = useState('');
@@ -25,7 +30,6 @@ const Clients = () => {
 
   const fetchClients = async () => {
     setLoading(true);
-    setError('');
     try {
       const response = await api.get('/clients', {
         params: {
@@ -40,7 +44,7 @@ const Clients = () => {
       }
     } catch (err) {
       console.error('Fetch clients error:', err);
-      setError('Failed to align client records. Please try again.');
+      showToast('Failed to align client records. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -58,6 +62,7 @@ const Clients = () => {
 
   const handleRefresh = () => {
     fetchClients();
+    showToast('Client registry synchronized with database.', 'info');
   };
 
   const handleAddClick = () => {
@@ -81,9 +86,9 @@ const Clients = () => {
     try {
       const response = await api.delete(`/clients/${selectedClient._id}`);
       if (response.data.success) {
+        showToast(`Client "${selectedClient.name}" has been deleted.`, 'success');
         setDeleteOpen(false);
         setSelectedClient(null);
-        // If we deleted the last client on this page, go back a page
         if (clients.length === 1 && page > 1) {
           setPage(page - 1);
         } else {
@@ -92,13 +97,12 @@ const Clients = () => {
       }
     } catch (err) {
       console.error('Delete client error:', err);
-      alert(err.response?.data?.message || 'Failed to delete client');
+      showToast(err.response?.data?.message || 'Failed to delete client', 'error');
     } finally {
       setDeleting(false);
     }
   };
 
-  // Helper to format date of birth
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -111,10 +115,10 @@ const Clients = () => {
   return (
     <div className="flex-1 py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden cosmic-bg">
       {/* Background glowing effects */}
-      <div className="absolute w-[500px] h-[500px] rounded-full bg-cosmic-500/5 blur-[120px] top-0 right-0 animate-pulse-slow"></div>
-      <div className="absolute w-[400px] h-[400px] rounded-full bg-gold-500/5 blur-[100px] bottom-0 left-0 animate-pulse-slow"></div>
+      <div className="absolute w-[500px] h-[500px] rounded-full bg-cosmic-500/5 blur-[120px] top-0 right-0  pointer-events-none"></div>
+      <div className="absolute w-[400px] h-[400px] rounded-full bg-gold-500/5 blur-[100px] bottom-0 left-0  pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto space-y-8 relative z-10 animate-fade-in">
+      <div className="max-w-7xl mx-auto space-y-8 relative z-10 animate-fade-in font-sans">
         {/* Header Title Section */}
         <div className="sm:flex sm:items-center sm:justify-between border-b border-cosmic-900/50 pb-6">
           <div className="flex-1 min-w-0">
@@ -126,24 +130,24 @@ const Clients = () => {
             </p>
           </div>
           <div className="mt-4 flex sm:mt-0 sm:ml-4 gap-2">
-            <button 
+            <Button 
+              variant="secondary"
               onClick={handleRefresh}
-              className="inline-flex items-center px-4 py-2.5 rounded-xl border border-cosmic-800/40 text-sm font-semibold text-slate-200 bg-cosmic-950/40 hover:bg-cosmic-900/40 transition-all duration-200"
+              className="px-3"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button 
+            </Button>
+            <Button 
               onClick={handleAddClick}
-              className="inline-flex items-center px-4.5 py-2.5 rounded-xl border border-transparent text-sm font-semibold text-cosmic-950 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-300 hover:to-gold-400 transition-all duration-200 shadow-lg shadow-gold-500/15"
+              className="gap-1.5"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Register Client
-            </button>
+              <Plus className="h-4 w-4" /> Register Client
+            </Button>
           </div>
         </div>
 
         {/* Search Filter Panel */}
-        <div className="glass-panel rounded-2xl p-4 border border-cosmic-800/30 shadow-md">
+        <Card className="p-4">
           <form onSubmit={handleSearchSubmit} className="flex gap-3">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-cosmic-400">
@@ -157,32 +161,21 @@ const Clients = () => {
                 placeholder="Search clients by name, email, or phone..."
               />
             </div>
-            <button
+            <Button
               type="submit"
-              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-200 bg-cosmic-900/60 hover:bg-cosmic-900/80 border border-cosmic-850 hover:border-cosmic-700 transition-all"
+              variant="secondary"
             >
               Filter
-            </button>
+            </Button>
           </form>
-        </div>
-
-        {/* Error Alert */}
-        {error && (
-          <div className="bg-rose-950/20 border border-rose-800/40 p-4 rounded-xl flex items-start space-x-3 text-rose-200 animate-fade-in text-sm">
-            <AlertCircle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
+        </Card>
 
         {/* Client List Grid / Table */}
-        <div className="glass-panel rounded-2xl border border-cosmic-800/30 overflow-hidden shadow-2xl">
+        <Card className="p-0 overflow-hidden border border-cosmic-800/30 shadow-2xl">
           {loading ? (
-            <div className="py-24 flex flex-col items-center justify-center">
-              <div className="relative w-12 h-12 mb-3">
-                <div className="absolute inset-0 rounded-full border-2 border-t-cosmic-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center text-lg">✨</div>
-              </div>
-              <p className="text-xs text-cosmic-400 uppercase tracking-widest animate-pulse">Consulting files...</p>
+            <div className="py-24">
+              <Spinner size="lg" />
+              <p className="text-xs text-cosmic-400 uppercase tracking-widest text-center mt-4 animate-pulse">Consulting files...</p>
             </div>
           ) : clients.length > 0 ? (
             <div className="overflow-x-auto">
@@ -210,7 +203,7 @@ const Clients = () => {
                               {client.name}
                             </div>
                             <div className="text-xs text-cosmic-400/80 flex items-center gap-1 mt-0.5">
-                              <Mail className="w-3 h-3 text-cosmic-500" /> {client.email}
+                              <Mail className="w-3.5 h-3.5 text-cosmic-500" /> {client.email}
                             </div>
                           </div>
                         </div>
@@ -261,7 +254,7 @@ const Clients = () => {
                       </td>
 
                       {/* Actions */}
-                      <td className="px-6 py-4.5 whitespace-nowrap text-right">
+                      <td className="px-6 py-4.5 whitespace-nowrap text-right font-sans">
                         <div className="flex items-center justify-end space-x-2">
                           <button
                             onClick={() => handleEditClick(client)}
@@ -285,24 +278,25 @@ const Clients = () => {
               </table>
             </div>
           ) : (
-            <div className="py-20 flex flex-col items-center justify-center max-w-sm mx-auto text-center">
-              <div className="p-4 rounded-full bg-cosmic-950/60 border border-cosmic-800/40 text-cosmic-400 mb-4 animate-float">
+            <div className="py-20 flex flex-col items-center justify-center max-w-sm mx-auto text-center px-4">
+              <div className="p-4 rounded-2xl bg-cosmic-950/60 border border-cosmic-800/40 text-cosmic-400 mb-4 animate-float">
                 <UserPlus className="h-10 w-10 text-gold-400" />
               </div>
               <h3 className="text-base font-bold text-slate-100">Empty Client Directory</h3>
               <p className="text-xs text-cosmic-300/50 mt-1 leading-relaxed">
                 {searchQuery 
-                  ? "No client records match your current filter coordinates. Refine your query parameters." 
-                  : "You haven't onboarded any clients under your profile yet. Click register to add one!"
+                  ? "No client records match your current search filters. Try refining your parameters." 
+                  : "You haven't onboarded any clients under your profile yet. Book a registration to begin."
                 }
               </p>
               {!searchQuery && (
-                <button
+                <Button
                   onClick={handleAddClick}
-                  className="mt-5 inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-semibold text-cosmic-950 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-300 hover:to-gold-400 transition-all"
+                  className="mt-5"
+                  size="sm"
                 >
                   <Plus className="h-3.5 w-3.5 mr-1.5" /> Onboard First Client
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -331,7 +325,7 @@ const Clients = () => {
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Form Dialog Modal */}

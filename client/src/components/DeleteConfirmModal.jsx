@@ -1,4 +1,5 @@
 import React from 'react';
+import Button from './ui/Button';
 import { X, AlertCircle } from 'lucide-react';
 
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, clientName, loading }) => {
@@ -28,7 +29,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, clientName, loading })
         </div>
 
         {/* Body Description */}
-        <div className="space-y-3 text-sm text-slate-300 mb-6">
+        <div className="space-y-3 text-sm text-slate-300 mb-6 font-sans">
           <p>
             Are you sure you want to delete <span className="font-bold text-gold-300">{clientName}</span> from your client registry?
           </p>
@@ -39,25 +40,21 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, clientName, loading })
 
         {/* Actions */}
         <div className="flex justify-end space-x-3 pt-2">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={onClose}
-            className="px-4.5 py-2.5 rounded-xl border border-cosmic-800/40 text-xs font-semibold text-slate-300 hover:text-white hover:bg-cosmic-900/30 transition-all"
+            size="sm"
           >
             Go Back
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="danger"
             onClick={onConfirm}
-            disabled={loading}
-            className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 transition-all disabled:opacity-50 flex items-center justify-center min-w-[90px]"
+            loading={loading}
+            size="sm"
           >
-            {loading ? (
-              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              'Dissolve'
-            )}
-          </button>
+            Dissolve
+          </Button>
         </div>
       </div>
     </div>

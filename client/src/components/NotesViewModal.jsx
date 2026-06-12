@@ -1,37 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
+import Button from './ui/Button';
 import { X, BookOpen, Check, Edit2 } from 'lucide-react';
 
 const NotesViewModal = ({ isOpen, onClose, consultation, onUpdate }) => {
+  const { showToast } = useToast();
+  
   const [isEditing, setIsEditing] = useState(false);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     if (consultation) {
       setNotes(consultation.notes || '');
     }
     setIsEditing(false);
-    setError('');
   }, [consultation, isOpen]);
 
   if (!isOpen || !consultation) return null;
 
   const handleSave = async () => {
     setLoading(true);
-    setError('');
     try {
       const response = await api.put(`/consultations/${consultation._id}`, {
         notes: notes
       });
       if (response.data.success) {
+        showToast('Session notes updated successfully.', 'success');
         onUpdate();
         setIsEditing(false);
       }
     } catch (err) {
       console.error('Update notes error:', err);
-      setError('Failed to update session notes. Please try again.');
+      showToast(err.response?.data?.message || 'Failed to update session notes.', 'error');
     } finally {
       setLoading(false);
     }
@@ -43,7 +45,7 @@ const NotesViewModal = ({ isOpen, onClose, consultation, onUpdate }) => {
       <div className="absolute inset-0 bg-cosmic-950/80 backdrop-blur-sm" onClick={onClose}></div>
 
       {/* Modal */}
-      <div className="glass-panel-glow border-cosmic-800/40 rounded-2xl w-full max-w-md p-6 shadow-2xl relative z-10 animate-slide-up">
+      <div className="glass-panel-glow border-cosmic-800/40 rounded-2xl w-full max-w-md p-6 shadow-2xl relative z-10 animate-slide-up font-sans">
         {/* Close */}
         <button 
           onClick={onClose} 
@@ -55,7 +57,7 @@ const NotesViewModal = ({ isOpen, onClose, consultation, onUpdate }) => {
         {/* Title */}
         <div className="flex items-center space-x-2 text-gold-400 mb-4 border-b border-cosmic-900/30 pb-3">
           <BookOpen className="h-5 w-5 shrink-0" />
-          <h3 className="text-base font-bold text-slate-100 uppercase tracking-wider font-sans">
+          <h3 className="text-base font-bold text-slate-100 uppercase tracking-wider">
             Session Notes
           </h3>
         </div>
@@ -64,12 +66,6 @@ const NotesViewModal = ({ isOpen, onClose, consultation, onUpdate }) => {
         <div className="text-xs text-cosmic-300/60 mb-4">
           Client: <span className="font-semibold text-slate-200">{consultation.client?.name}</span>
         </div>
-
-        {error && (
-          <p className="text-xs text-rose-400 mb-3 bg-rose-950/10 border border-rose-900/20 p-2 rounded-lg">
-            {error}
-          </p>
-        )}
 
         {/* Content */}
         <div className="space-y-4">
@@ -93,36 +89,35 @@ const NotesViewModal = ({ isOpen, onClose, consultation, onUpdate }) => {
           <div className="flex justify-end pt-2">
             {isEditing ? (
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setIsEditing(false);
                     setNotes(consultation.notes || '');
                   }}
-                  className="px-4.5 py-2 rounded-xl border border-cosmic-800/40 text-xs font-semibold text-slate-300 hover:text-white transition-all"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
                   onClick={handleSave}
-                  disabled={loading}
-                  className="px-4.5 py-2 rounded-xl text-xs font-semibold text-cosmic-950 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-300 hover:to-gold-400 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  loading={loading}
+                  size="sm"
+                  className="gap-1.5"
                 >
-                  {loading ? (
-                    <div className="h-4 w-4 border-2 border-cosmic-950 border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" /> Save Notes
-                    </>
-                  )}
-                </button>
+                  <Check className="h-4 w-4" /> Save Notes
+                </Button>
               </div>
             ) : (
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => setIsEditing(true)}
-                className="px-4.5 py-2 rounded-xl text-xs font-semibold text-slate-200 bg-cosmic-900/60 hover:bg-cosmic-900/80 border border-cosmic-800/40 transition-all flex items-center gap-1.5"
+                size="sm"
+                className="gap-1.5"
               >
                 <Edit2 className="h-3.5 w-3.5" /> Edit Notes
-              </button>
+              </Button>
             )}
           </div>
         </div>
