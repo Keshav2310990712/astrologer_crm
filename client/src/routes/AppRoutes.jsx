@@ -5,6 +5,7 @@ import Signup from '../pages/Signup';
 import Dashboard from '../pages/Dashboard';
 import Clients from '../pages/Clients';
 import Consultations from '../pages/Consultations';
+import Analytics from '../pages/Analytics';
 import NotFound from '../pages/NotFound';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
@@ -52,6 +53,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Consultations />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <Analytics />
           </ProtectedRoute>
         }
       />

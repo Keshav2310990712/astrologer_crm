@@ -6,6 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const consultationRoutes = require('./routes/consultationRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +25,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/consultations', consultationRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Root route for health check
 app.get('/api/status', (req, res) => {
